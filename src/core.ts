@@ -3,49 +3,55 @@ import * as os from "os";
 import * as fs from "fs";
 import * as path from "path";
 import * as child from "child_process";
-import axios from "axios";
+import { sendIPCCommand } from "./ipc-server";
 
 type Project = {
-  key: string
-  path: string
-}
+  key: string;
+  path: string;
+};
 
 type Remote = {
-  key: string
-  url: string
-}
+  key: string;
+  host: string;
+  port: number;
+};
 
 type Config = {
-  key: string
-  projects: Record<string, Project>
-  remotes: Record<string, Remote>
-}
+  key: string;
+  projects: Record<string, Project>;
+  remotes: Record<string, Remote>;
+};
 
-let defaultConfig : Config = {
+let defaultConfig: Config = {
   key: null,
   projects: {},
   remotes: {},
 };
 
-let config : Config = defaultConfig;
+let config: Config = defaultConfig;
 
 const homeFolder = os.homedir();
-const appFolder = path.resolve(homeFolder, ".pu");
-const configFile = path.resolve(appFolder, "config.json");
+const configFolder = path.resolve(homeFolder, ".prup");
+const configFile = path.resolve(configFolder, "config.json");
 
-if (!fs.existsSync(appFolder)) {
-  fs.mkdirSync(appFolder);
+if (!fs.existsSync(configFolder)) {
+  fs.mkdirSync(configFolder);
 }
 
-function safeGetRemote(alias: string) : Remote {
+function safeGetRemote(alias: string): Remote {
   const remote = getRemotes()[alias];
   if (!remote) {
     throw new Error("Unrecognized remmote " + alias);
   }
   return remote;
 }
-function remoteURL(remote: Remote) : string {
-  return remote.url.endsWith("/") ? remote.url.slice(0, remote.url.length - 1) : remote.url;
+
+export function getConfigFolder() {
+  return configFolder;
+}
+
+export function getAppKey() {
+  return config.key;
 }
 
 export function isAppKeyValid(key: string) {
@@ -53,7 +59,7 @@ export function isAppKeyValid(key: string) {
 }
 
 export function writeConfig() {
-  fs.writeFileSync(configFile, JSON.stringify(config))
+  fs.writeFileSync(configFile, JSON.stringify(config));
 }
 
 export function ensureDefaultConfig() {
@@ -66,25 +72,25 @@ export function ensureDefaultConfig() {
     config = {
       ...defaultConfig,
       ...config,
-    }
+    };
   }
 }
 
 export function execute(workingDirectory: string, commands: string[]) {
   console.log("In " + workingDirectory);
   for (let command of commands) {
-    console.log("Executing `" + command + "`")
+    console.log("Executing `" + command + "`");
     const result = child.execSync(command, {
-      cwd: workingDirectory
+      cwd: workingDirectory,
     });
-    console.log("Done executing `" + command + "`")
+    console.log("Done executing `" + command + "`");
   }
 
   console.log("Pu is done building.");
 }
 
 export function executeForDirectory(workingDir: string) {
-  const file = path.resolve(workingDir, "pu.config.js");
+  const file = path.resolve(workingDir, "prup.config.js");
   if (!fs.existsSync(file)) {
     throw new Error("The file " + file + " doesn't exist.");
   }
@@ -101,7 +107,11 @@ export function executeForName(name: string) {
   return executeForDirectory(config.projects[name].path);
 }
 
-export function executeWithCommandsSafe(name: string, key: string, commands: string[]) {
+export function executeWithCommandsSafe(
+  name: string,
+  key: string,
+  commands: string[]
+) {
   if (!config.projects[name]) {
     throw new Error("Project with name " + name + " isn't registered.");
   }
@@ -114,33 +124,43 @@ export function executeWithCommandsSafe(name: string, key: string, commands: str
 }
 
 export async function executeRemote(configPath: string) {
-  const finalPath = path.resolve(configPath, "pu.config.js");
+  const finalPath = path.resolve(configPath, "prup.config.js");
   if (!fs.existsSync(finalPath)) {
-    throw new Error("Could not find pu.config.js inside " + configPath);
+    throw new Error("Could not find prup.config.js inside " + configPath);
   }
 
   const data = require(finalPath);
   const remote = safeGetRemote(data.remoteAlias);
 
-  const url = remoteURL(remote);
-  const result = await axios.post<Project>(url + "/projects/build", {
-    name: data.projectAlias,
-    key: data.projectKey,
-    commands: data.commands,
-  }, {
-    headers: {
-      "x-pu-key": remote.key
-    }
-  });
+  return sendIPCCommand(
+    {
+      key: remote.key,
+      command: "build",
+      payload: {
+        name: data.projectAlias,
+        key: data.projectKey,
+        commands: data.commands,
+      },
+    },
+    remote.host,
+    remote.port
+  );
 }
+
 export function addProject(name: string, directory: string) {
   if (config.projects[name] && config.projects) {
-    console.warn("Project " + name + " is already defined with path " + directory + " and will be erased.");
+    console.warn(
+      "Project " +
+        name +
+        " is already defined with path " +
+        directory +
+        " and will be erased."
+    );
   }
 
   config.projects[name] = {
     key: crypto.randomBytes(48).toString("hex"),
-    path: directory
+    path: directory,
   };
   writeConfig();
 }
@@ -153,14 +173,20 @@ export function getRemotes() {
   return config.remotes;
 }
 
-export function addRemote(alias: string, url: string, key: string) {
-  const remote : Remote = {
-    url,
-    key
+export function addRemote(
+  alias: string,
+  data: {
+    host: string;
+    port: number;
+    key: string;
   }
+) {
+  const remote: Remote = data;
 
   if (config.remotes[alias]) {
-    console.warn("Remote " + name + " is already defined with path and will be erased.");
+    console.warn(
+      "Remote " + name + " is already defined with path and will be erased."
+    );
   }
 
   config.remotes[alias] = remote;
@@ -176,18 +202,23 @@ export function removeRemote(alias: string) {
   writeConfig();
 }
 
-export async function generateConfigContent(remoteAlias: string, projectAlias: string) {
+export async function generateConfigContent(
+  remoteAlias: string,
+  projectAlias: string
+) {
   const remote = safeGetRemote(remoteAlias);
-  const url = remoteURL(remote);
-  const result = await axios.post<Project>(url + "/projects/get", {
-    name: projectAlias
-  }, {
-    headers: {
-      "x-pu-key": remote.key
-    }
-  });
-
-  const data = result.data;
+  const result = await sendIPCCommand(
+    {
+      command: "get:project",
+      key: remote.key,
+      payload: {
+        name: projectAlias,
+      },
+    },
+    remote.host,
+    remote.port
+  );
+  const data = result.payload;
 
   return `module.exports = {
   remoteAlias: "${remoteAlias}",
@@ -196,13 +227,15 @@ export async function generateConfigContent(remoteAlias: string, projectAlias: s
   commands: [
     "yarn run build",
   ]
-}
-  `;
+}`;
 }
 
-export async function createFileContent(remoteAlias: string, projectAlias: string) {
+export async function createFileContent(
+  remoteAlias: string,
+  projectAlias: string
+) {
   const content = await generateConfigContent(remoteAlias, projectAlias);
-  const filePath = path.resolve(process.cwd(), "pu.config.js");
+  const filePath = path.resolve(process.cwd(), "prup.config.js");
   fs.writeFileSync(filePath, content);
 }
 
