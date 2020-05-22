@@ -1,8 +1,11 @@
 import net from "net";
-import { executeWithCommandsSafe, getAppKey, getProjects } from "./core";
+import {executeWithCommandsSafe, getAppKey, getProjects, loadConfig} from "./core";
 
 const PORT = 17997;
 
+export function getDefaultIPCServerPort() {
+  return PORT;
+}
 function serialize(data: any): string {
   return JSON.stringify(data);
 }
@@ -34,6 +37,9 @@ export async function startIPCServer() {
         writeUnknownCommand();
         return;
       }
+
+      // Synchronize with local file
+      loadConfig();
 
       switch (request.command) {
         case "healthcheck":
@@ -74,7 +80,6 @@ export async function startIPCServer() {
           }
 
           const projects = getProjects();
-
           const project = projects[request.payload.name];
           if (!project) {
             writeInvalidCommand();

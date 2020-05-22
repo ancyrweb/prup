@@ -15,10 +15,12 @@ import {
   getAppKey,
   getProjects,
   getRemotes,
-  removeRemote,
+  removeRemote, safeGetProject,
 } from "./core";
 
-import { sendIPCCommand } from "./ipc-server";
+import {getDefaultIPCServerPort, sendIPCCommand} from "./ipc-server";
+import {getHostName, getIPAddress, logError, logSuccess} from "./utils";
+import {printHowToAddProject} from "./cli-utils";
 
 program.version("0.0.1");
 program
@@ -34,9 +36,9 @@ program
       } else {
         await executeRemote(process.cwd());
       }
-      console.log(chalk.green("Build done !"));
+      logSuccess("Build done !");
     } catch (e) {
-      console.error(chalk.red("Could not build : " + e.message));
+      logError("Could not build : " + e.message);
     }
   });
 
@@ -48,16 +50,27 @@ projects
   .option("-d,--directory <directory>", "Directory")
   .action((name, opts) => {
     addProject(name, opts.directory || process.cwd());
+    logSuccess("Your project have been created !");
+    printHowToAddProject(name);
   });
+
+projects
+  .command("print-install-steps <name>")
+  .description("Print how to configure the project in your local machine")
+  .action((name) => {
+    safeGetProject(name);
+    printHowToAddProject(name);
+  });
+
 projects
   .command("list")
   .description("List the projects")
   .action(() => {
     const directories = getProjects();
     Object.keys(directories).map((name) => {
-      console.log("[" + chalk.red(name) + "]");
-      console.log("Key : " + directories[name].key);
-      console.log("Path : " + directories[name].path);
+      console.log(chalk.green("[" + name + "]"));
+      console.log("Key : " + chalk.bold(directories[name].key));
+      console.log("Path : " + chalk.bold(directories[name].path));
     });
   });
 
@@ -76,7 +89,12 @@ projects
     "Dump the content of what a prup.config.js file should look like for the project"
   )
   .action(async (remote, project) => {
-    console.log(chalk.green(await generateConfigContent(remote, project)));
+    try {
+      const result = await generateConfigContent(remote, project)
+      logSuccess(result);
+    } catch (e) {
+      logError(e.message);
+    }
   });
 
 const remotes = program.command("remotes").description("Manage remote URLs");
@@ -87,10 +105,10 @@ remotes
   .action(() => {
     const remotes = getRemotes();
     Object.keys(remotes).map((name) => {
-      console.log("[" + chalk.red(name) + "]");
-      console.log("Key : " + remotes[name].key);
-      console.log("Host : " + remotes[name].host);
-      console.log("Port : " + remotes[name].port);
+      console.log(chalk.green("[" + name + "]"));
+      console.log("Key : " + chalk.bold(remotes[name].key));
+      console.log("Host : " + chalk.bold(remotes[name].host));
+      console.log("Port : " + chalk.bold(remotes[name].port));
     });
   });
 remotes
@@ -124,9 +142,7 @@ server
     } catch (e) {}
 
     if (isRunning) {
-      console.error(
-        chalk.red("Could not start the server : server is already running.")
-      );
+      logError("Could not start the server : server is already running.");
       return;
     }
 
@@ -142,7 +158,7 @@ server
 
       child.unref();
     } catch (e) {
-      console.error(chalk.red("Could not start the server : " + e.message));
+      logError("Could not start the server : " + e.message);
     }
   });
 
@@ -156,20 +172,20 @@ server
         key: getAppKey(),
         command: "stop",
       });
-      console.log(chalk.green("Server have been shutdown"));
+      logSuccess("Server have been shutdown");
     } catch (e) {
       if (e.errno === "ECONNREFUSED") {
-        console.error(chalk.green("The server is already shutdown."));
+        logError("The server is not running.");
         return;
       }
 
-      console.error(chalk.red("Could not shutdown the server : " + e.message));
+      logError("Could not shutdown the server : " + e.message)
     }
   });
 
 server
   .command("healthcheck")
-  .description("Get info about the server")
+  .description("Get healthcheck info about the server")
   .action(async () => {
     try {
       const result = await sendIPCCommand({
@@ -178,13 +194,21 @@ server
       });
 
       if (result.result !== "healthy") {
-        console.error(chalk.red("Server is unhealthy."));
+        logError("Server is unhealthy.");
       } else {
-        console.log(chalk.green("Server is healthy."));
+        logSuccess("Server is healthy.");
       }
     } catch (e) {
-      console.error(chalk.red("Could not shutdown the server : " + e.message));
+      logError("Could not get healthcheck informations : " + e.message);
     }
   });
+
+server
+  .command("info")
+  .description("Get info about the server")
+  .action(async () => {
+    console.log(chalk.red("[Server]"));
+    console.log("Key : " + chalk.bold(getAppKey()))
+  })
 
 program.parse(process.argv);

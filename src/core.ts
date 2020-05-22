@@ -4,6 +4,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as child from "child_process";
 import { sendIPCCommand } from "./ipc-server";
+import {logError} from "./utils";
 
 type Project = {
   key: string;
@@ -38,12 +39,19 @@ if (!fs.existsSync(configFolder)) {
   fs.mkdirSync(configFolder);
 }
 
-function safeGetRemote(alias: string): Remote {
+export function safeGetRemote(alias: string): Remote {
   const remote = getRemotes()[alias];
   if (!remote) {
-    throw new Error("Unrecognized remmote " + alias);
+    throw new Error("Unrecognized remote " + alias);
   }
   return remote;
+}
+export function safeGetProject(name: string): Project {
+  const project = getProjects()[name];
+  if (!project) {
+    throw new Error("Unrecognized project " + name);
+  }
+  return project;
 }
 
 export function getConfigFolder() {
@@ -62,7 +70,7 @@ export function writeConfig() {
   fs.writeFileSync(configFile, JSON.stringify(config));
 }
 
-export function ensureDefaultConfig() {
+export function loadConfig() {
   if (!fs.existsSync(configFile)) {
     config.key = crypto.randomBytes(48).toString("hex");
     writeConfig();
@@ -218,6 +226,11 @@ export async function generateConfigContent(
     remote.host,
     remote.port
   );
+
+  if (!result.payload) {
+    throw new Error("Could not get the project.")
+  }
+
   const data = result.payload;
 
   return `module.exports = {
@@ -239,4 +252,4 @@ export async function createFileContent(
   fs.writeFileSync(filePath, content);
 }
 
-ensureDefaultConfig();
+loadConfig();

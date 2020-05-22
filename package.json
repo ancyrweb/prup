@@ -1,6 +1,6 @@
 {
   "name": "prup",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "main": "index.js",
   "license": "MIT",
   "scripts": {
@@ -27,6 +27,7 @@
     "chalk": "^4.0.0",
     "commander": "^5.1.0",
     "forever": "^2.0.0",
-    "forever-monitor": "^2.0.0"
+    "forever-monitor": "^2.0.0",
+    "ip": "^1.1.5"
   }
 }
