@@ -4,7 +4,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as child from "child_process";
 import { sendIPCCommand } from "./ipc-server";
-import {logError} from "./utils";
+import { logError } from "./utils";
 
 type Project = {
   key: string;
@@ -228,7 +228,7 @@ export async function generateConfigContent(
   );
 
   if (!result.payload) {
-    throw new Error("Could not get the project.")
+    throw new Error("Could not get the project.");
   }
 
   const data = result.payload;

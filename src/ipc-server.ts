@@ -1,5 +1,10 @@
 import net from "net";
-import {executeWithCommandsSafe, getAppKey, getProjects, loadConfig} from "./core";
+import {
+  executeWithCommandsSafe,
+  getAppKey,
+  getProjects,
+  loadConfig,
+} from "./core";
 
 const PORT = 17997;
 

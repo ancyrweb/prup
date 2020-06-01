@@ -15,7 +15,8 @@ import {
   getAppKey,
   getProjects,
   getRemotes,
-  removeRemote, safeGetProject,
+  removeRemote,
+  safeGetProject,
 } from "./core";
 
 import { sendIPCCommand } from "./ipc-server";
@@ -51,7 +52,9 @@ projects
   .action((name, opts) => {
     addProject(name, opts.directory || process.cwd());
     logSuccess("Your project have been created !");
-    console.log("You can now bind it on your local machine. Here's how to do it.");
+    console.log(
+      "You can now bind it on your local machine. Here's how to do it."
+    );
     console.log("");
     printHowToAddProject(name);
   });
@@ -92,7 +95,7 @@ projects
   )
   .action(async (remote, project) => {
     try {
-      const result = await generateConfigContent(remote, project)
+      const result = await generateConfigContent(remote, project);
       logSuccess(result);
     } catch (e) {
       logError(e.message);
@@ -181,7 +184,7 @@ server
         return;
       }
 
-      logError("Could not shutdown the server : " + e.message)
+      logError("Could not shutdown the server : " + e.message);
     }
   });
 
@@ -210,7 +213,7 @@ server
   .description("Get info about the server")
   .action(async () => {
     console.log(chalk.greenBright("[Server]"));
-    console.log("Key : " + chalk.bold(getAppKey()))
-  })
+    console.log("Key : " + chalk.bold(getAppKey()));
+  });
 
 program.parse(process.argv);
