@@ -88,7 +88,22 @@ It will execute the commands on your server, in the directory configured for you
 
 You are done. Whenever you want to update your server's just run `prup`.
 
-### Security
+# Most useful commands
+
+| Command | Side | Result |
+|---------|------|--------|
+|`prup projects add <name> -d,--directory <directory>` | Server | Add a project to prup |
+|`prup print-install-steps <name>` | Server | Print a notice to help you configure the project on your local machine |
+|`prup server start` | Server | Starts the server |
+|`prup server stop` | Server | Stops the server |
+|`prup server info` | Server | Print info about the server |
+|`prup` | Client | Build the project |
+|`prup create-config <remote> <project>` | Client | Create a `prup.config.js` file on your client' current working directory to build the project at remote |
+|`prup dump-config <remote> <project>` | Client | Like `create-config` but writes it to standard output instead of creating the file |
+|`prup remotes list` | Client | List all the remotes configured |
+|`prup remotes add <alias> <host> <port> <key>` | Client | Add a remote. You should use `prup print-install-steps <name>` on your server to get started. Port is by default 17997. |
+
+# Security
 1. You shouldn't commit your `prup.config.js` file into your repository as it will expose your server.
 2. Keep the keys secrets. Your server key allows anyone to communicate with the `prup` server and execute commands, so keep it safe.
 3. Also keep your project keys secret. Each project has a key you need to use in order to build the project. Therefore you always
@@ -98,11 +113,11 @@ I believe these are rudimentary security protections that will require more work
 In the meantime, you should **really** block communications to your port *17997* and whitelist your own machines. This port
 shouldn't be accessible publicly until we figure out how to make it safe with minimal intervention.
 
-### Next Steps
+# Next Steps
 1. Whitelists / User Accounts : allow only specific machines to communicate with the server
 2. Creating and configure projects remotely : without having to get into the server to add one.
-3. Multiple commands set : so you can separate build, clear and other tasks in separate command groups.
+3. Multiple commands : so you can separate build, clear and other tasks in separate command groups.
+4. Multiple environments : one config file to deploy to multiple environments
 
-
-### Helping
-This project is still very prototypal and not ready for production use. Feedback and PRs are welcome !
+# Helping
+This project is still prototypal and not ready for production use. Feedback and PRs are welcome !

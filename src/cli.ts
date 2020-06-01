@@ -18,9 +18,9 @@ import {
   removeRemote, safeGetProject,
 } from "./core";
 
-import {getDefaultIPCServerPort, sendIPCCommand} from "./ipc-server";
-import {getHostName, getIPAddress, logError, logSuccess} from "./utils";
-import {printHowToAddProject} from "./cli-utils";
+import { sendIPCCommand } from "./ipc-server";
+import { logError, logSuccess } from "./utils";
+import { printHowToAddProject } from "./cli-utils";
 
 program.version("0.0.1");
 program
@@ -51,6 +51,8 @@ projects
   .action((name, opts) => {
     addProject(name, opts.directory || process.cwd());
     logSuccess("Your project have been created !");
+    console.log("You can now bind it on your local machine. Here's how to do it.");
+    console.log("");
     printHowToAddProject(name);
   });
 
@@ -207,7 +209,7 @@ server
   .command("info")
   .description("Get info about the server")
   .action(async () => {
-    console.log(chalk.red("[Server]"));
+    console.log(chalk.greenBright("[Server]"));
     console.log("Key : " + chalk.bold(getAppKey()))
   })
 

@@ -4,21 +4,19 @@ import {getDefaultIPCServerPort} from "./ipc-server";
 import {getAppKey} from "./core";
 
 export function printHowToAddProject(name: string) {
-  console.log("You can now bind it on your local machine. Here's how to do it.");
-  console.log("");
-  console.log(chalk.bold(chalk.greenBright("1. Add the remote")));
-  console.log("First, add this machine as a remote in your local machine.")
-  console.log("Type the following command :")
-  console.log("");
-  console.log(chalk.bold("prup remotes add " + getHostName() + " " + getIPAddress() + " " + getDefaultIPCServerPort() + " " + getAppKey()));
-  console.log("");
-  console.log(chalk.bold(chalk.greenBright("2. Start the server")));
+  console.log(chalk.bold(chalk.greenBright("1 Start the server")));
   console.log("Ensure the server is running for your machine to communicate with it. Type : ");
   console.log("");
   console.log(chalk.bold("prup server start"));
   console.log("");
+  console.log(chalk.bold(chalk.greenBright("2. Add the remote")));
+  console.log("Then, add this machine as a remote in your local machine.")
+  console.log("Type the following command :")
+  console.log("");
+  console.log(chalk.bold("prup remotes add " + getHostName() + " " + getIPAddress() + " " + getDefaultIPCServerPort() + " " + getAppKey()));
+  console.log("");
   console.log(chalk.bold(chalk.greenBright("3. Link the project")));
-  console.log("Now, in your locale machine, move into your code's folder and type :")
+  console.log("Now, move into your code's folder and type :")
   console.log("");
   console.log(chalk.bold("prup projects create-config " + getHostName() + " " + name + ""))
   console.log("");
